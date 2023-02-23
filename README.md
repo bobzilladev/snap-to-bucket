@@ -119,6 +119,7 @@ To change the type of volume, use `--type` option (like `io1` for higher
 throughput).
 
 The script can also compress the tar with gzip. Use the `--gzip` option.
+Or compress with pigz, use the `--pigz` option.
 
 The default storage class used for S3 objects will be STANDARD. To use other
 classes like STANDARD_IA or even GLACIER, use `--storage-class` option.
@@ -169,6 +170,7 @@ Options:
   -s, --split SIZE                split tar in chunks no bigger than (allowed
                                   suffix b,k,m,g,t)  [default: 5t]
   -g, --gzip                      compress tar with gzip
+  -p, --pigz                      compress tar with pigz
   -r, --restore                   restore a snapshot
   -k, --key TEXT                  key of the snapshot folder to restore
                                   (required if restoring)

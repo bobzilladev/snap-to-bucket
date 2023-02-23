@@ -32,6 +32,7 @@ class SnapToBucket:
     :ivar restore_boot: Was the snapshot, being restored, bootable?
     :ivar split_size: Size in bytes to split tar at
     :ivar gzip: True to compress tar with gzip
+    :ivar pigz: True to compress tar with pigz
     :ivar restore_dir: Location to store S3 object for restore
     :ivar iops: IOPS for supported volumes
     :ivar throughput: Throughput for supported volumes
@@ -89,6 +90,7 @@ class SnapToBucket:
         self.__restore_dir = restore_dir
         self.__split_size = 5 * 1024.0 * 1024.0 * 1024.0 * 1024.0
         self.__gzip = False
+        self.__pigz = False
         self.__iops = None
         self.__throughput = None
         self.__ec2handler = None
@@ -132,6 +134,12 @@ class SnapToBucket:
         """
         self.__gzip = True
 
+    def perform_pigz(self):
+        """
+        Update the flag to compress tar with pigz
+        """
+        self.__pigz = True
+
     def update_iops(self, iops):
         """
         Update the IOPS of the volume
@@ -158,7 +166,7 @@ class SnapToBucket:
                                        self.__verbose, self.__iops,
                                        self.__throughput)
         self.__s3handler = S3Handler(self.__bucket, self.__split_size,
-                                     self.__gzip, self.__storage_class,
+                                     self.__gzip, self.__pigz, self.__storage_class,
                                      self.__verbose)
         self.__fshandler = FsHandler(self.__mount_point, self.__verbose)
         os.makedirs(self.__mount_point, exist_ok=True)

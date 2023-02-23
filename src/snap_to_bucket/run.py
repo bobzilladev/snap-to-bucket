@@ -108,6 +108,8 @@ class VolSize(click.ParamType):
               default="5t", type=VolSize())
 @click.option("-g", "--gzip", help="compress tar with gzip", is_flag=True,
               default=False)
+@click.option("-p", "--pigz", help="compress tar with pigz", is_flag=True,
+              default=False)
 @click.option("-r", "--restore", help="restore a snapshot", is_flag=True,
               default=False)
 @click.option("-k", "--key", help="key of the snapshot folder to restore " +
@@ -119,7 +121,7 @@ class VolSize(click.ParamType):
               type=click.Path(exists=False, dir_okay=True, writable=True,
                               file_okay=False, resolve_path=True))
 def main(verbose, proxy, noproxy, bucket, tag, type, storage_class, mount,
-         delete, split, gzip, restore, key, boot, restore_dir, iops,
+         delete, split, gzip, pigz, restore, key, boot, restore_dir, iops,
          throughput):
     """
     snap2bucket is a simple tool based on boto3 to move snapshots to S3
@@ -154,6 +156,8 @@ def main(verbose, proxy, noproxy, bucket, tag, type, storage_class, mount,
     snap_to_bucket.update_split_size(split)
     if gzip:
         snap_to_bucket.perform_gzip()
+    if pigz:
+        snap_to_bucket.perform_pigz()
     snap_to_bucket.initiate_migration()
 
 

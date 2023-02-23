@@ -54,6 +54,7 @@ class S3Handler:
     :ivar restore_partition_size: Size of partition being restored
     :ivar split_size: Size in bytes to split tar at
     :ivar gzip: True to compress tar with gzip
+    :ivar pigz: True to compress tar with pigz
     :ivar storage_class: Storage class of S3 object
     :ivar FIVE_HUNDRED_MB: Five hundred MiB in bytes
     :ivar FIVE_GB: Five GiB in bytes
@@ -63,7 +64,7 @@ class S3Handler:
     FIVE_GB = (5 * (1024 ** 3))
 
     def __init__(self, bucket, split_size=5497558138880.0, gzip=False,
-                 storage_class="STANDARD", verbose=0):
+                 pigz=False, storage_class="STANDARD", verbose=0):
         """
         Initializer for the class attributes.
 
@@ -75,6 +76,8 @@ class S3Handler:
         :type split_size: float
         :param gzip: True to compress tar with gzip
         :type gzip: boolean
+        :param pigz: True to compress tar with pigz
+        :type pigz: boolean
         :param storage_class: Storage class of S3 object
         :type storage_class: string
         :param verbose: Verbosity level (0-3)
@@ -85,6 +88,7 @@ class S3Handler:
         self.__check_bucket_accessiblity(bucket)
         self.split_size = split_size
         self.gzip = gzip
+        self.pigz = pigz
         self.storage_class = storage_class
         self.verbose = verbose
         self.temp_download = None
@@ -184,12 +188,12 @@ class S3Handler:
         meta_data["snap-volume-size"] = f"{snapshot['volumesize']} GiB"
         if partno == -1:
             key = f"{key}.tar"
-            if self.gzip:
+            if self.gzip or self.pigz:
                 key = f"{key}.gz"
                 content_type = "application/gzip"
         else:
             key = f"{key}-part{partno}.tar"
-            if self.gzip:
+            if self.gzip or self.pigz:
                 key = f"{key}.gz"
                 content_type = "application/gzip"
         if size > 1:
@@ -247,6 +251,10 @@ class S3Handler:
             gzip_process = Popen(["gzip", "--to-stdout", "-6"],
                                  stdin=tar_process.stdout, stdout=PIPE)
             read_process = gzip_process
+        if self.pigz:
+            pigz_process = Popen(["pigz", "--stdout", "-6", "-p", "4"],
+                                 stdin=tar_process.stdout, stdout=PIPE)
+            read_process = pigz_process
         more_to_read = True
         try:
             while more_to_read:
@@ -259,6 +267,8 @@ class S3Handler:
             read_process = None
             if self.gzip:
                 gzip_process.wait()
+            if self.pigz:
+                pigz_process.wait()
             tar_process.wait()
         print()
         if self.verbose > 0:

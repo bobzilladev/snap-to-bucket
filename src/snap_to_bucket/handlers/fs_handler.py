@@ -136,7 +136,7 @@ class FsHandler:
             raise ex
         if self.verbose > 1:
             print(f"Mounting '{self.device}' at '{self.mount_point}'")
-        subprocess.call(["mount", "--source", self.device, "--target",
+        subprocess.call(["mount", "-o", "nouuid", "--source", self.device, "--target",
                          self.mount_point])
 
     def unmount_volume(self):
