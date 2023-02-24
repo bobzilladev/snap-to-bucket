@@ -134,10 +134,18 @@ class FsHandler:
         except Exception as ex:
             print("Unable to find device to mount.", file=sys.stderr)
             raise ex
-        if self.verbose > 1:
-            print(f"Mounting '{self.device}' at '{self.mount_point}'")
-        subprocess.call(["mount", "-o", "nouuid", "--source", self.device, "--target",
-                         self.mount_point])
+
+        xfs_ret = subprocess.call(["xfs_db", "-c", "version", "-r", self.device])
+        options = ["mount", "--source", self.device, "--target", self.mount_point]
+        if xfs_ret == 0:
+            # don't error on duplicate xfs uuid
+            options.append("-o")
+            options.append("nouuid")
+        if self.verbose > 0:
+            print(f"Mounting '{self.device}' at '{self.mount_point}' with '{options}'")
+        ret = subprocess.call(options)
+        if ret != 0:
+            print(f"Failed to mount '{self.device}' at '{self.mount_point}' with '{options}'")
 
     def unmount_volume(self):
         """
