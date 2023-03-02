@@ -14,6 +14,7 @@ import http
 import json
 import math
 import urllib.request
+import time
 from datetime import datetime
 
 import boto3
@@ -290,7 +291,7 @@ class Ec2Handler:
         )
         return True
 
-    def __volume_is_attached(self, volumeid):
+    def __volume_is_attached(self, volumeid, instanceid):
         """
         Wait till volume is attached to instance
 
@@ -300,7 +301,9 @@ class Ec2Handler:
         :raises botocore.exceptions.WaiterError: If the volume attachment failed
         """
         self.ec2client.get_waiter("volume_in_use").wait(
-            VolumeIds=[volumeid]
+            VolumeIds=[volumeid],
+            Filters=[{'Name': 'attachment.instance-id',
+                      'Values': [instanceid]}]
         )
         return True
 
@@ -336,14 +339,20 @@ class Ec2Handler:
             )
         except Exception as ex:
             print(f"Failed to attach volume '{volumeid}' to instance '" +
-                  self.instance_info["instanceId"] + "'", file=sys.stderr)
-            print(f"Deleting volume '{volumeid}'", file=sys.stderr)
-            self.delete_volume(volumeid)
-            raise ex
+                  self.instance_info["instanceId"] + "' ex: " + ex.response['Error']['Code'] +
+                  " " + ex.response['Error']['Message'], file=sys.stderr)
+            if ex.response['Error']['Code'] == 'VolumeInUse':
+                print(f"Volume already marked in use, aws race condition," +
+                  " __volume_is_attached will check it after sleeping 30 seconds...", file=sys.stderr)
+                time.sleep(30)
+            else:
+                print(f"Deleting volume '{volumeid}'", file=sys.stderr)
+                self.delete_volume(volumeid)
+                raise ex
         if self.verbose > 1:
             print(f"Attaching volume '{volumeid}' to instance '" +
                   self.instance_info["instanceId"] + "'")
-        if self.__volume_is_attached(volumeid):
+        if self.__volume_is_attached(volumeid, self.instance_info["instanceId"]):
             if self.verbose > 2:
                 print(f"Volume '{volumeid}' attached to '" +
                       self.instance_info["instanceId"] + "'")
